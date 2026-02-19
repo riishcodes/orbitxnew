@@ -81,19 +81,30 @@ function GraphNode({
     const dim = marketOverlay && !isHighDemand && !isSelected
     const highlight = marketOverlay && isHighDemand
 
-    // Smooth position animation
+    // Smooth position animation + gentle floating
     useFrame((state) => {
         if (meshRef.current) {
+            // Unique offset per node for organic feel
+            const offset = node.id.length * 0.7
+            const floatY = Math.sin(state.clock.elapsedTime * 0.6 + offset) * 1.5
+            const floatX = Math.cos(state.clock.elapsedTime * 0.4 + offset) * 0.8
+
             meshRef.current.position.lerp(
-                new THREE.Vector3(node.x || 0, node.y || 0, node.z || 0),
-                0.1
+                new THREE.Vector3(
+                    (node.x || 0) + floatX,
+                    (node.y || 0) + floatY,
+                    node.z || 0
+                ),
+                0.08
             )
             // Pulse effect for high demand nodes
             if (highlight) {
-                const s = 1 + Math.sin(state.clock.elapsedTime * 3) * 0.1
+                const s = 1 + Math.sin(state.clock.elapsedTime * 3) * 0.12
                 meshRef.current.scale.setScalar(s)
             } else {
-                meshRef.current.scale.setScalar(1)
+                // Subtle breathing effect on all nodes
+                const breath = 1 + Math.sin(state.clock.elapsedTime * 1.2 + offset) * 0.03
+                meshRef.current.scale.setScalar(breath)
             }
         }
     })
@@ -105,7 +116,7 @@ function GraphNode({
         <group ref={meshRef}>
             <Billboard follow lockX={false} lockY={false} lockZ={false}>
                 {/* Glow ring behind icon */}
-                <mesh scale={[baseScale * 7, baseScale * 7, 1]}>
+                <mesh scale={[baseScale * 5, baseScale * 5, 1]}>
                     <circleGeometry args={[1, 32]} />
                     <meshBasicMaterial
                         color={highlight ? "#EF4444" : color} // Red glow if high demand
@@ -359,13 +370,13 @@ function GraphScene() {
                 "link",
                 forceLink(links)
                     .id((d: any) => d.id)
-                    .distance(20)
-                    .strength((l: any) => l.strength * 2)
+                    .distance(25)
+                    .strength((l: any) => l.strength * 1.5)
             )
-            .force("charge", forceManyBody().strength(-20))
+            .force("charge", forceManyBody().strength(-40))
             .force("center", forceCenter())
             .alpha(1)
-            .alphaDecay(0.05)
+            .alphaDecay(0.03)
 
         sim.on("tick", () => {
             setSimNodes([...nodes])

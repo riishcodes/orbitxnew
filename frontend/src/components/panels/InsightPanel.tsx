@@ -1,49 +1,103 @@
 "use client"
+import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useGraphStore } from "@/stores/graphStore"
 import { useSkillStore } from "@/stores/skillStore"
-import { CATEGORY_COLORS, MOCK_GAPS, MOCK_ROADMAP } from "@/lib/mock-data"
+import { CATEGORY_COLORS } from "@/lib/mock-data"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import ScoreRing from "@/components/ui/ScoreRing"
 import WhatIfSimulator from "@/components/panels/WhatIfSimulator"
 import RecruiterCard from "@/components/panels/RecruiterCard"
 
+const ROLES = [
+    "Full Stack Developer",
+    "Frontend Developer",
+    "Backend Developer",
+    "ML Engineer",
+    "Data Scientist",
+]
+
+const stagger = {
+    hidden: {},
+    show: { transition: { staggerChildren: 0.12 } },
+}
+const fadeUp = {
+    hidden: { opacity: 0, y: 12 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.25, 0.1, 0.25, 1] } },
+}
+
 export default function InsightPanel() {
     const { selectedNode, recruiterMode } = useGraphStore()
-    const { currentScore, gaps, targetRole } = useSkillStore()
+    const { currentScore, gaps, targetRole, setCurrentScore, setGaps, setTargetRole } = useSkillStore()
+    const [loading, setLoading] = useState(false)
 
-    const displayGaps = gaps.length > 0 ? gaps : MOCK_GAPS
+    useEffect(() => {
+        const fetchCareer = async () => {
+            setLoading(true)
+            try {
+                const res = await fetch(`http://localhost:8000/career/readiness?target_role=${encodeURIComponent(targetRole)}`)
+                if (res.ok) {
+                    const data = await res.json()
+                    setCurrentScore(data.career_readiness)
+                    setGaps(data.gaps || [])
+                }
+            } catch (err) {
+                console.warn('Could not fetch career data:', err)
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchCareer()
+    }, [targetRole, setCurrentScore, setGaps])
 
     if (recruiterMode) {
         return <RecruiterCard />
     }
 
     return (
-        <div className="h-full flex flex-col gap-4 p-4 bg-white border-l border-slate-200">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <h2 className="text-sm font-bold text-slate-400 uppercase tracking-[0.2em]">
+        <motion.div
+            variants={stagger}
+            initial="hidden"
+            animate="show"
+            className="h-full flex flex-col gap-4 p-4 bg-white border-l border-slate-200 overflow-y-auto"
+        >
+            {/* Header + Role Selector */}
+            <motion.div variants={fadeUp}>
+                <h2 className="text-sm font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">
                     Insights
                 </h2>
-                <span className="text-[10px] font-bold text-slate-400">
-                    {targetRole}
-                </span>
-            </div>
+                <div className="relative">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        Target Role
+                    </label>
+                    <select
+                        value={targetRole}
+                        onChange={(e) => setTargetRole(e.target.value)}
+                        className="w-full mt-1 px-3 py-2 text-sm font-bold text-slate-900 bg-slate-50 border border-slate-200 rounded-lg appearance-none cursor-pointer hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-colors"
+                    >
+                        {ROLES.map((role) => (
+                            <option key={role} value={role}>{role}</option>
+                        ))}
+                    </select>
+                    <div className="absolute right-3 bottom-2.5 pointer-events-none text-slate-400 text-xs">▼</div>
+                </div>
+            </motion.div>
 
             {/* Score Ring */}
-            <div className="flex justify-center py-2">
-                <ScoreRing score={currentScore || 58} label="Career Readiness" />
-            </div>
+            <motion.div variants={fadeUp} className="flex justify-center py-2">
+                <ScoreRing score={currentScore || 0} label="Career Readiness" />
+            </motion.div>
 
             {/* Selected Node Detail */}
             <AnimatePresence mode="wait">
                 {selectedNode && (
                     <motion.div
                         key={selectedNode.id}
-                        initial={{ opacity: 0, x: 10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -10 }}
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        transition={{ duration: 0.25 }}
                     >
                         <Card className="bg-slate-50/50 border-slate-200 shadow-sm">
                             <CardHeader className="p-4 pb-2">
@@ -65,7 +119,6 @@ export default function InsightPanel() {
                                     <MetricBox label="Source" value={selectedNode.source} />
                                 </div>
 
-                                {/* Maturity bar */}
                                 <div className="space-y-1">
                                     <div className="flex justify-between text-[10px] font-bold text-slate-400">
                                         <span>MATURITY</span>
@@ -88,19 +141,29 @@ export default function InsightPanel() {
             </AnimatePresence>
 
             {/* What-If Simulator */}
-            <WhatIfSimulator />
+            <motion.div variants={fadeUp}>
+                <WhatIfSimulator />
+            </motion.div>
 
             {/* Skill Gaps */}
-            <div className="space-y-2">
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">
-                    Skill Gaps
-                </p>
-                {displayGaps.map((gap, i) => (
+            <motion.div variants={fadeUp} className="space-y-2">
+                <div className="flex items-center justify-between">
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">
+                        Skill Gaps
+                    </p>
+                    {loading && (
+                        <div className="w-3 h-3 border border-slate-300 border-t-slate-600 rounded-full animate-spin" />
+                    )}
+                </div>
+                {gaps.length === 0 && !loading && (
+                    <p className="text-xs text-slate-400 italic">No gaps detected — sync GitHub first</p>
+                )}
+                {gaps.map((gap, i) => (
                     <motion.div
                         key={gap.skill}
-                        initial={{ opacity: 0, y: 5 }}
+                        initial={{ opacity: 0, y: 6 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: i * 0.1 }}
+                        transition={{ delay: 0.3 + i * 0.1, duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
                     >
                         <Card className="flex items-center gap-3 p-3 bg-white hover:bg-slate-50 transition-colors shadow-sm border-slate-200">
                             <div className="flex-1">
@@ -117,32 +180,8 @@ export default function InsightPanel() {
                         </Card>
                     </motion.div>
                 ))}
-            </div>
-
-            {/* Roadmap Preview */}
-            <div className="space-y-2 mt-auto">
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">
-                    Learning Roadmap
-                </p>
-                {MOCK_ROADMAP.phases.map((phase, i) => (
-                    <div key={i} className="flex items-start gap-3">
-                        <div className="flex flex-col items-center">
-                            <div className={`w-2 h-2 rounded-full mt-1 ${i === 0 ? 'bg-slate-900 shadow-[0_0_8px_rgba(0,0,0,0.1)]' : 'bg-slate-200'}`} />
-                            {i < MOCK_ROADMAP.phases.length - 1 && (
-                                <div className="w-px h-8 bg-slate-200" />
-                            )}
-                        </div>
-                        <div>
-                            <p className="text-xs font-bold text-slate-700">{phase.title}</p>
-                            <p className="text-[10px] font-medium text-slate-500">{phase.duration} · {phase.skills.join(', ')}</p>
-                        </div>
-                    </div>
-                ))}
-                <p className="text-[10px] font-bold text-slate-400 mt-2">
-                    Target: {MOCK_ROADMAP.career_readiness_after}% readiness in {MOCK_ROADMAP.total_duration}
-                </p>
-            </div>
-        </div>
+            </motion.div>
+        </motion.div>
     )
 }
 

@@ -21,7 +21,7 @@ export const useSkillStore = create<SkillState>((set) => ({
     currentScore: 0,
     gaps: [],
     lastUpdated: null,
-    targetRole: 'ML Engineer',
+    targetRole: 'Full Stack Developer',
     setCurrentScore: (score) => set({ currentScore: score }),
     setGaps: (gaps) => set({ gaps }),
     setLastUpdated: (date) => set({ lastUpdated: date }),

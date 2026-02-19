@@ -13,6 +13,10 @@ class TokenResponse(BaseModel):
     user: dict
 
 
+class GitHubSyncRequest(BaseModel):
+    token: str
+
+
 # --- Skill ---
 class SkillNode(BaseModel):
     id: str

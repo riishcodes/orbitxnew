@@ -16,11 +16,8 @@ GITHUB_USER_URL = "https://api.github.com/user"
 @router.post("/github", response_model=TokenResponse)
 async def github_login(payload: GitHubLoginRequest):
     """Exchange GitHub OAuth code for access token and return JWT."""
-    if settings.demo_mode:
-        token = _create_jwt(DEMO_USER)
-        return TokenResponse(access_token=token, user=DEMO_USER)
-
     # Exchange code for GitHub access token
+    print(f"DEBUG: exchanging code {payload.code} with ID {settings.github_client_id}...")
     async with httpx.AsyncClient() as client:
         res = await client.post(
             GITHUB_TOKEN_URL,
@@ -33,9 +30,11 @@ async def github_login(payload: GitHubLoginRequest):
         )
 
     token_data = res.json()
+    print(f"DEBUG: GitHub response: {token_data}")
     gh_token = token_data.get("access_token")
     if not gh_token:
-        raise HTTPException(status_code=400, detail="Failed to get GitHub token")
+        print(f"ERROR: No access_token found in {token_data}")
+        raise HTTPException(status_code=400, detail=f"GitHub Error: {token_data.get('error_description', 'Unknown error')}")
 
     # Fetch user profile
     async with httpx.AsyncClient() as client:
@@ -50,6 +49,7 @@ async def github_login(payload: GitHubLoginRequest):
         "username": user_data.get("login"),
         "avatar": user_data.get("avatar_url", ""),
         "github_token": gh_token,
+        "target_role": "Full Stack Developer",  # Default for new users
     }
 
     token = _create_jwt(user)
@@ -58,8 +58,8 @@ async def github_login(payload: GitHubLoginRequest):
 
 @router.get("/me")
 async def get_current_user():
-    """Return demo user for now — extend with JWT decode in production."""
-    return DEMO_USER
+    """Return current user info."""
+    raise HTTPException(status_code=401, detail="Not authenticated")
 
 
 def _create_jwt(user: dict) -> str:

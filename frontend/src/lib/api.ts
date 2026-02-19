@@ -5,7 +5,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 const api = axios.create({
     baseURL: BASE_URL,
-    timeout: 10000,
+    timeout: 60000,
 })
 
 // Attach auth token to every request
@@ -15,20 +15,22 @@ api.interceptors.request.use((config) => {
     return config
 })
 
-// Auto-fallback to demo data on any API failure
+// Auto-fallback to demo data on any API failure - REMOVED for production
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        console.warn('API unavailable — using demo data')
-        const url = error.config?.url || ''
-        if (url.includes('/graph')) return Promise.resolve({ data: MOCK_GRAPH })
-        if (url.includes('/readiness')) return Promise.resolve({ data: { career_readiness: 58, gaps: MOCK_GAPS } })
-        if (url.includes('/roadmap')) return Promise.resolve({ data: MOCK_ROADMAP })
-        if (url.includes('/recruiter')) return Promise.resolve({ data: MOCK_RECRUITER })
-        if (url.includes('/whatif')) return Promise.resolve({ data: { score_delta: 8, new_score: 66, original_score: 58 } })
-        if (url.includes('/github')) return Promise.resolve({ data: { user: MOCK_USER } })
         return Promise.reject(error)
     }
 )
+
+export const authGithub = async (code: string) => {
+    const res = await api.post('/auth/github', { code })
+    return res.data
+}
+
+export const syncGithubGraph = async (token: string) => {
+    const res = await api.post('/graph/sync/github', { token })
+    return res.data
+}
 
 export default api

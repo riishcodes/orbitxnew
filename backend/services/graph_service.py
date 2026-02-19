@@ -30,7 +30,6 @@ def save_graph(nodes: List[Dict], links: List[Dict]):
         return
 
     with driver.session() as session:
-        # Clear existing data for clean rebuild
         session.run("MATCH (n) DETACH DELETE n")
 
         for node in nodes:
@@ -136,4 +135,54 @@ def add_link(link: Dict):
             target=link["target"],
             strength=link.get("strength", 0.5),
         )
+    driver.close()
+
+
+def add_nodes_and_links(nodes: List[Dict], links: List[Dict]):
+    """Add multiple nodes and links to the graph (merging)."""
+    driver = get_driver()
+    if driver is None:
+        # In-memory merge
+        existing_ids = {n["id"] for n in _graph_store["nodes"]}
+        for node in nodes:
+            if node["id"] not in existing_ids:
+                _graph_store["nodes"].append(node)
+                existing_ids.add(node["id"])
+        _graph_store["links"].extend(links)
+        return
+
+    with driver.session() as session:
+        for node in nodes:
+            label = node.get("category", "Skill").capitalize()
+            session.run(
+                f"""
+                MERGE (s:{label} {{id: $id}})
+                SET s.name = $name,
+                    s.category = $category,
+                    s.maturity = $maturity,
+                    s.market_demand = $market_demand,
+                    s.source = $source,
+                    s.val = $val
+                """,
+                id=node["id"],
+                name=node["name"],
+                category=node.get("category", "concept"),
+                maturity=node.get("maturity", 50),
+                market_demand=node.get("market_demand", 70),
+                source=node.get("source", "github"),
+                val=node.get("val", 5.0),
+            )
+
+        for link in links:
+            rel_type = link.get("type", "RELATED_TO")
+            session.run(
+                f"""
+                MATCH (a {{id: $source}}), (b {{id: $target}})
+                MERGE (a)-[r:{rel_type}]->(b)
+                SET r.strength = $strength
+                """,
+                source=link["source"],
+                target=link["target"],
+                strength=link.get("strength", 0.5),
+            )
     driver.close()
