@@ -1,5 +1,6 @@
 "use client"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 import { useGraphStore } from "@/stores/graphStore"
 import { MOCK_USER } from "@/lib/mock-data"
 import { Button } from "@/components/ui/button"
@@ -62,9 +63,11 @@ export default function Topbar() {
                     <p className="text-[10px] font-medium text-slate-400">Pro Member</p>
                 </div>
                 <div className="w-9 h-9 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center overflow-hidden">
-                    <img
+                    <Image
                         src={MOCK_USER.avatar}
                         alt="avatar"
+                        width={36}
+                        height={36}
                         className="w-full h-full object-cover"
                     />
                 </div>

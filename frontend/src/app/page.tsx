@@ -135,7 +135,7 @@ function BackgroundGraph() {
         import("3d-force-graph").then(({ default: ForceGraph3D }) => {
             if (!containerRef.current) return
 
-            const Graph = ForceGraph3D()(containerRef.current)
+            const Graph = (ForceGraph3D as any)()(containerRef.current)
                 .backgroundColor("#F8FAFC") // Light background to match page
                 .nodeColor(() => "#3B82F6") // Blue nodes
                 .nodeOpacity(0.9)
