@@ -1,4 +1,4 @@
-# SkillGraph AI — Interactive 3D Knowledge Graph Builder
+# ORBITx — Interactive 3D Knowledge Graph Builder
 
 > AI-powered Career Intelligence Platform that transforms GitHub activity, Notion notes, and certifications into measurable hiring intelligence using AI reasoning and interactive 3D knowledge graphs.
 
@@ -12,8 +12,6 @@
 
 - **🔮 Interactive 3D Knowledge Graph** — Force-directed, zoomable, clickable skill visualization
 - **🔗 GitHub Integration** — OAuth login, live repo fetching, language extraction
-- **📓 Notion Integration** — Connect learning notes and pages
-- **📜 Certifications** — Manual upload with auto skill mapping
 - **🤖 AI Skill Extraction** — Gemini 1.5 Flash NLP-based extraction (free)
 - **📊 Career Readiness Score** — Quantified 0-100 with breakdown
 - **🎯 Skill Gap Analysis** — AI-powered gap identification with priority scores
