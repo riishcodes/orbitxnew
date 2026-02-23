@@ -15,10 +15,31 @@ api.interceptors.request.use((config) => {
     return config
 })
 
-// Auto-fallback to demo data on any API failure - REMOVED for production
+// Retry logic with exponential backoff for network errors
+const MAX_RETRIES = 3
+const RETRY_DELAY = 1000 // ms
+
 api.interceptors.response.use(
     (response) => response,
-    (error) => {
+    async (error) => {
+        const config = error.config
+        if (!config) return Promise.reject(error)
+
+        // Initialize retry count
+        config.__retryCount = config.__retryCount || 0
+
+        // Only retry on network errors or 5xx server errors
+        const isNetworkError = !error.response
+        const isServerError = error.response?.status >= 500
+
+        if ((isNetworkError || isServerError) && config.__retryCount < MAX_RETRIES) {
+            config.__retryCount += 1
+            const delay = RETRY_DELAY * Math.pow(2, config.__retryCount - 1)
+            console.log(`API retry ${config.__retryCount}/${MAX_RETRIES} after ${delay}ms...`)
+            await new Promise((resolve) => setTimeout(resolve, delay))
+            return api(config)
+        }
+
         return Promise.reject(error)
     }
 )
