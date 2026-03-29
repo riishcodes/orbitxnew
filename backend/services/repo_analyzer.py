@@ -10,9 +10,18 @@ from typing import Dict, List, Any, Tuple
 from services.ai_service import extract_skills as ai_extract_skills
 from services.tech_directory import match_technologies, TECH_DIRECTORY
 from services.market_data import get_market_demand
+from config import settings
 
 
 GITHUB_API = "https://api.github.com"
+
+
+def _github_headers() -> dict:
+    """Build headers for GitHub API requests (authenticated if token available)."""
+    headers = {"Accept": "application/vnd.github.mercy-preview+json"}
+    if settings.github_token:
+        headers["Authorization"] = f"token {settings.github_token}"
+    return headers
 
 
 def parse_github_url(url: str) -> Tuple[str, str]:
@@ -39,18 +48,18 @@ def parse_github_url(url: str) -> Tuple[str, str]:
 
 
 async def _fetch_repo_info(owner: str, repo: str) -> Dict:
-    """Fetch public repo metadata (no auth required)."""
-    headers = {"Accept": "application/vnd.github.mercy-preview+json"}
+    """Fetch public repo metadata."""
     async with httpx.AsyncClient(timeout=15) as client:
-        res = await client.get(f"{GITHUB_API}/repos/{owner}/{repo}", headers=headers)
+        res = await client.get(f"{GITHUB_API}/repos/{owner}/{repo}", headers=_github_headers())
         if res.status_code != 200:
             raise ValueError(f"Repository not found: {owner}/{repo} (status {res.status_code})")
         return res.json()
 
 
 async def _fetch_readme_public(owner: str, repo: str) -> str:
-    """Fetch raw README from a public repo (no auth required)."""
-    headers = {"Accept": "application/vnd.github.raw"}
+    """Fetch raw README from a public repo."""
+    headers = _github_headers()
+    headers["Accept"] = "application/vnd.github.raw"
     async with httpx.AsyncClient(timeout=15) as client:
         try:
             res = await client.get(f"{GITHUB_API}/repos/{owner}/{repo}/readme", headers=headers)
@@ -62,10 +71,10 @@ async def _fetch_readme_public(owner: str, repo: str) -> str:
 
 
 async def _fetch_languages_public(owner: str, repo: str) -> Dict:
-    """Fetch language breakdown from a public repo (no auth required)."""
+    """Fetch language breakdown from a public repo."""
     async with httpx.AsyncClient(timeout=10) as client:
         try:
-            res = await client.get(f"{GITHUB_API}/repos/{owner}/{repo}/languages")
+            res = await client.get(f"{GITHUB_API}/repos/{owner}/{repo}/languages", headers=_github_headers())
             if res.status_code == 200:
                 return res.json()
         except Exception:
