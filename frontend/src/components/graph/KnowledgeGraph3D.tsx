@@ -425,7 +425,7 @@ function GraphScene() {
                     key={node.id}
                     node={node}
                     isSelected={selectedNode?.id === node.id}
-                    onClick={() => setSelectedNode(node)}
+                    onClick={() => setSelectedNode(node as any)}
                 />
             ))}
         </>

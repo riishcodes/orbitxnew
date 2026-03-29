@@ -1,10 +1,10 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useAuthStore } from "@/stores/authStore"
 import { authGithub, syncGithubGraph } from "@/lib/api"
 
-export default function AuthCallback() {
+function AuthCallbackInner() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const { setUser, setIsDemo } = useAuthStore()
@@ -86,5 +86,17 @@ export default function AuthCallback() {
                 )}
             </div>
         </div>
+    )
+}
+
+export default function AuthCallback() {
+    return (
+        <Suspense fallback={
+            <div className="flex h-screen w-screen items-center justify-center bg-white">
+                <div className="w-12 h-12 border-4 border-slate-200 border-t-orange-500 rounded-full animate-spin" />
+            </div>
+        }>
+            <AuthCallbackInner />
+        </Suspense>
     )
 }
