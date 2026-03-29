@@ -202,6 +202,85 @@ function FeatureCard({
 }
 
 /* ──────────────────────────────────────────
+   STAT ITEM
+   ────────────────────────────────────────── */
+function StatItem({
+    stat,
+    index
+}: {
+    stat: { value: string; label: string; icon: any }
+    index: number
+}) {
+    const ref = useRef(null)
+    const isInView = useInView(ref, { once: true, margin: "-20px" })
+    return (
+        <motion.div
+            ref={ref}
+            initial={{ opacity: 0, y: 16 }}
+            animate={isInView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.6, ease: customEase, delay: index * 0.1 }}
+            className="flex items-center gap-5 md:justify-center py-4 md:py-0"
+        >
+            <div className="w-12 h-12 rounded-full bg-orange-50 flex items-center justify-center shrink-0">
+                <stat.icon className="w-5 h-5 text-orange-500" strokeWidth={2} />
+            </div>
+            <div>
+                <p className="text-[19px] font-bold text-slate-900 tracking-tight">{stat.value}</p>
+                <p className={`text-[12px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 ${GeistMono.className}`}>{stat.label}</p>
+            </div>
+        </motion.div>
+    )
+}
+
+/* ──────────────────────────────────────────
+   STEP ITEM
+   ────────────────────────────────────────── */
+function StepItem({
+    item,
+    index
+}: {
+    item: { step: string; icon: any; title: string; desc: string; gradient: string }
+    index: number
+}) {
+    const stepRef = useRef(null)
+    const stepInView = useInView(stepRef, { once: true, margin: "-40px" })
+    return (
+        <motion.div
+            ref={stepRef}
+            initial={{ opacity: 0, y: 30 }}
+            animate={stepInView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.7, ease: customEase, delay: index * 0.15 }}
+            className="relative flex flex-col items-center text-center"
+        >
+            {/* Step circle */}
+            <div className="relative z-10 mb-6">
+                <div className={`w-[104px] h-[104px] rounded-full bg-gradient-to-br ${item.gradient} flex items-center justify-center shadow-lg`}>
+                    <item.icon className="w-8 h-8 text-white" strokeWidth={1.5} />
+                </div>
+                {/* Step number badge */}
+                <div className={`absolute -top-2 -right-2 w-9 h-9 rounded-full bg-white border-2 border-slate-100 shadow-md flex items-center justify-center`}>
+                    <span className={`text-[11px] font-bold text-orange-600 ${GeistMono.className}`}>
+                        {item.step}
+                    </span>
+                </div>
+            </div>
+
+            {/* Vertical connector (mobile) */}
+            {index < 2 && (
+                <div className="md:hidden w-px h-8 bg-gradient-to-b from-orange-200 to-transparent -mt-2 mb-2" />
+            )}
+
+            <h3 className="text-xl font-bold text-slate-900 mb-2 tracking-tight">
+                {item.title}
+            </h3>
+            <p className="text-[14px] text-slate-500 leading-relaxed max-w-[260px] font-medium">
+                {item.desc}
+            </p>
+        </motion.div>
+    )
+}
+
+/* ──────────────────────────────────────────
    MAIN PAGE
    ────────────────────────────────────────── */
 export default function LandingPage() {
@@ -440,28 +519,9 @@ export default function LandingPage() {
                             { value: "AI-Powered", label: "Gap Analysis", icon: Cpu },
                             { value: "Interactive", label: "3D Visualization", icon: Layers },
                             { value: "Real-time", label: "Skill Tracking", icon: TrendingUp },
-                        ].map((stat, i) => {
-                            const ref = useRef(null)
-                            const isInView = useInView(ref, { once: true, margin: "-20px" })
-                            return (
-                                <motion.div
-                                    ref={ref}
-                                    key={stat.label}
-                                    initial={{ opacity: 0, y: 16 }}
-                                    animate={isInView ? { opacity: 1, y: 0 } : {}}
-                                    transition={{ duration: 0.6, ease: customEase, delay: i * 0.1 }}
-                                    className="flex items-center gap-5 md:justify-center py-4 md:py-0"
-                                >
-                                    <div className="w-12 h-12 rounded-full bg-orange-50 flex items-center justify-center shrink-0">
-                                        <stat.icon className="w-5 h-5 text-orange-500" strokeWidth={2} />
-                                    </div>
-                                    <div>
-                                        <p className="text-[19px] font-bold text-slate-900 tracking-tight">{stat.value}</p>
-                                        <p className={`text-[12px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 ${GeistMono.className}`}>{stat.label}</p>
-                                    </div>
-                                </motion.div>
-                            )
-                        })}
+                        ].map((stat, i) => (
+                            <StatItem key={stat.label} stat={stat} index={i} />
+                        ))}
                     </div>
                 </div>
             </section>
@@ -542,45 +602,9 @@ export default function LandingPage() {
                                 desc: "Navigate your 3D skill graph, uncover gaps, and get a personalized career roadmap.",
                                 gradient: "from-orange-500 to-orange-600",
                             },
-                        ].map((item, i) => {
-                            const stepRef = useRef(null)
-                            const stepInView = useInView(stepRef, { once: true, margin: "-40px" })
-                            return (
-                                <motion.div
-                                    ref={stepRef}
-                                    key={item.step}
-                                    initial={{ opacity: 0, y: 30 }}
-                                    animate={stepInView ? { opacity: 1, y: 0 } : {}}
-                                    transition={{ duration: 0.7, ease: customEase, delay: i * 0.15 }}
-                                    className="relative flex flex-col items-center text-center"
-                                >
-                                    {/* Step circle */}
-                                    <div className="relative z-10 mb-6">
-                                        <div className={`w-[104px] h-[104px] rounded-full bg-gradient-to-br ${item.gradient} flex items-center justify-center shadow-lg`}>
-                                            <item.icon className="w-8 h-8 text-white" strokeWidth={1.5} />
-                                        </div>
-                                        {/* Step number badge */}
-                                        <div className={`absolute -top-2 -right-2 w-9 h-9 rounded-full bg-white border-2 border-slate-100 shadow-md flex items-center justify-center`}>
-                                            <span className={`text-[11px] font-bold text-orange-600 ${GeistMono.className}`}>
-                                                {item.step}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    {/* Vertical connector (mobile) */}
-                                    {i < 2 && (
-                                        <div className="md:hidden w-px h-8 bg-gradient-to-b from-orange-200 to-transparent -mt-2 mb-2" />
-                                    )}
-
-                                    <h3 className="text-xl font-bold text-slate-900 mb-2 tracking-tight">
-                                        {item.title}
-                                    </h3>
-                                    <p className="text-[14px] text-slate-500 leading-relaxed max-w-[260px] font-medium">
-                                        {item.desc}
-                                    </p>
-                                </motion.div>
-                            )
-                        })}
+                        ].map((item, i) => (
+                            <StepItem key={item.step} item={item} index={i} />
+                        ))}
                     </div>
                 </div>
             </section>
