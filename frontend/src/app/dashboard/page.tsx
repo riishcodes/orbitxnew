@@ -63,7 +63,8 @@ function DashboardContent() {
         // Fetch real graph data from backend
         const fetchGraph = async () => {
             try {
-                const res = await fetch('http://localhost:8000/graph/')
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+                const res = await fetch(`${apiUrl}/graph/`)
                 if (res.ok) {
                     const data = await res.json()
                     if (data.nodes && data.nodes.length > 0) {
@@ -78,7 +79,8 @@ function DashboardContent() {
         // Fetch career readiness + skill gaps
         const fetchCareer = async () => {
             try {
-                const res = await fetch('http://localhost:8000/career/readiness')
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+                const res = await fetch(`${apiUrl}/career/readiness`)
                 if (res.ok) {
                     const data = await res.json()
                     setCurrentScore(data.career_readiness)

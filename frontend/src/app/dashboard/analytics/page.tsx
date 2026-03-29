@@ -50,7 +50,8 @@ export default function AnalyticsPage() {
     // Fetch graph data if not already loaded
     useEffect(() => {
         if (graphData.nodes.length === 0) {
-            fetch("http://localhost:8000/graph/")
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+            fetch(`${apiUrl}/graph/`)
                 .then((r) => r.json())
                 .then((d) => { if (d.nodes?.length > 0) setGraphData(d) })
                 .catch(() => { })
@@ -60,7 +61,8 @@ export default function AnalyticsPage() {
     // Fetch career readiness
     useEffect(() => {
         if (currentScore === 0) {
-            fetch("http://localhost:8000/career/readiness")
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+            fetch(`${apiUrl}/career/readiness`)
                 .then((r) => r.json())
                 .then((d) => setCurrentScore(d.career_readiness))
                 .catch(() => { })

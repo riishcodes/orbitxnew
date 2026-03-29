@@ -36,7 +36,8 @@ export default function InsightPanel() {
         const fetchCareer = async () => {
             setLoading(true)
             try {
-                const res = await fetch(`http://localhost:8000/career/readiness?target_role=${encodeURIComponent(targetRole)}`)
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+                const res = await fetch(`${apiUrl}/career/readiness?target_role=${encodeURIComponent(targetRole)}`)
                 if (res.ok) {
                     const data = await res.json()
                     setCurrentScore(data.career_readiness)
