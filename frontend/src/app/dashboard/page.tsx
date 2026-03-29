@@ -1,16 +1,18 @@
 "use client"
 import dynamic from "next/dynamic"
 import { useSearchParams } from "next/navigation"
-import { useEffect, Suspense } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { useGraphStore } from "@/stores/graphStore"
 import { useSkillStore } from "@/stores/skillStore"
 import { useAuthStore } from "@/stores/authStore"
 import { MOCK_GRAPH, MOCK_USER, MOCK_GAPS, CATEGORY_COLORS } from "@/lib/mock-data"
 import Topbar from "@/components/layout/Topbar"
+import DashboardTour from "@/components/layout/DashboardTour"
 import InsightPanel from "@/components/panels/InsightPanel"
 import MarketAnalysisPanel from "@/components/panels/MarketAnalysisPanel"
 import RecruiterCard from "@/components/panels/RecruiterCard"
 import SearchFilter from "@/components/panels/SearchFilter"
+import PanelSkeleton from "@/components/ui/PanelSkeleton"
 import { motion, AnimatePresence } from "framer-motion"
 
 // Dynamic import — 3d-force-graph cannot run on server
@@ -36,8 +38,27 @@ function DashboardContent() {
     const { setCurrentScore, setGaps } = useSkillStore()
     const { setUser, setIsDemo } = useAuthStore()
 
+    const [panelLoading, setPanelLoading] = useState(false)
+    const [isHydrated, setIsHydrated] = useState(false)
+    const panelKey = `${showInsights}-${marketOverlay}-${recruiterMode}`
+
+    // Show skeleton briefly when switching panels
+    useEffect(() => {
+        setPanelLoading(true)
+        const timer = setTimeout(() => setPanelLoading(false), 400)
+        return () => clearTimeout(timer)
+    }, [panelKey])
+
     useEffect(() => {
         setIsDemo(false)
+
+        // Prevent hydration flash on mobile, close default insights
+        if (typeof window !== 'undefined') {
+            if (window.innerWidth < 1024 && useGraphStore.getState().showInsights) {
+                useGraphStore.setState({ showInsights: false })
+            }
+            setIsHydrated(true)
+        }
 
         // Fetch real graph data from backend
         const fetchGraph = async () => {
@@ -77,14 +98,15 @@ function DashboardContent() {
     return (
         <div className="flex flex-col h-screen bg-[#F8F9FA]">
             <Topbar />
+            <DashboardTour />
             <div className="flex flex-1 overflow-hidden px-4 md:px-8 pb-4 md:pb-8 gap-4 md:gap-6 relative">
                 {/* 3D Graph — takes remaining width */}
-                <div className="flex-1 relative bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                <div id="tour-graph" className="flex-1 relative bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
                     <SearchFilter />
                     <KnowledgeGraph3D />
 
                     {/* Legend */}
-                    <div className="absolute bottom-4 md:bottom-6 left-4 md:left-6 z-10 bg-white/80 backdrop-blur-md rounded-xl p-2 md:p-3 border border-slate-100 flex gap-2 md:gap-4 shadow-sm flex-wrap">
+                    <div id="tour-legend" className="absolute bottom-4 md:bottom-6 left-4 md:left-6 z-10 bg-white/80 backdrop-blur-md rounded-xl p-2 md:p-3 border border-slate-100 flex gap-2 md:gap-4 shadow-sm flex-wrap">
                         {[
                             { label: "Repo", color: CATEGORY_COLORS.repo },
                             { label: "Language", color: CATEGORY_COLORS.language },
@@ -104,7 +126,7 @@ function DashboardContent() {
 
                 {/* Right panel — desktop: side panel, mobile/tablet: overlay */}
                 <AnimatePresence initial={false}>
-                    {panelOpen && (
+                    {isHydrated && panelOpen && (
                         <>
                             {/* Mobile/tablet backdrop overlay */}
                             <motion.div
@@ -126,13 +148,30 @@ function DashboardContent() {
                                 exit={{ x: "100%", opacity: 0 }}
                                 transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
                                 className="
-                                    fixed right-0 top-0 bottom-0 w-[85vw] max-w-[400px] z-40
+                                    fixed right-0 top-0 bottom-0 w-full z-40
                                     lg:relative lg:right-auto lg:top-auto lg:bottom-auto lg:w-[400px] lg:z-auto
-                                    overflow-y-auto bg-white border border-slate-200 rounded-l-2xl lg:rounded-2xl shadow-lg lg:shadow-sm
+                                    overflow-y-auto bg-white border border-slate-200 lg:rounded-2xl shadow-lg lg:shadow-sm
                                 "
                             >
-                                <div className="min-w-0 lg:min-w-[400px]">
-                                    {recruiterMode ? <RecruiterCard /> : marketOverlay ? <MarketAnalysisPanel /> : <InsightPanel />}
+                                {/* Mobile Panel Header with Close Button */}
+                                <div className="lg:hidden flex items-center justify-between p-4 border-b border-slate-100 bg-white sticky top-0 z-50">
+                                    <span className="text-sm font-bold text-slate-900">
+                                        {recruiterMode ? "Recruiter View" : marketOverlay ? "Market Analysis" : "Insights"}
+                                    </span>
+                                    <button 
+                                        onClick={() => {
+                                            if (showInsights) useGraphStore.getState().toggleInsights()
+                                            if (marketOverlay) useGraphStore.getState().toggleMarketOverlay()
+                                            if (recruiterMode) useGraphStore.getState().toggleRecruiterMode()
+                                        }}
+                                        className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100/80 text-slate-500 hover:bg-slate-200 transition-colors"
+                                    >
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                    </button>
+                                </div>
+
+                                <div className="min-w-0 lg:min-w-[400px] pb-8 lg:pb-0">
+                                    {panelLoading ? <PanelSkeleton /> : recruiterMode ? <RecruiterCard /> : marketOverlay ? <MarketAnalysisPanel /> : <InsightPanel />}
                                 </div>
                             </motion.div>
                         </>

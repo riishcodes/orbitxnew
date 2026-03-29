@@ -13,8 +13,9 @@ import {
 } from "framer-motion"
 import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
-import GitHubAuthButton from "@/components/ui/GitHubAuthButton"
-import { ArrowRight, Sparkles, ChevronDown, GitBranch, Cpu, Route, BarChart3, TrendingUp, Layers } from "lucide-react"
+// import GitHubAuthButton from "@/components/ui/GitHubAuthButton"
+import { analyzeRepo } from "@/lib/api"
+import { ArrowRight, Sparkles, ChevronDown, GitBranch, Cpu, Route, BarChart3, TrendingUp, Layers, Loader2, Search } from "lucide-react"
 
 /* ──────────────────────────────────────────
    FONT HELPERS
@@ -206,6 +207,9 @@ function FeatureCard({
 export default function LandingPage() {
     const router = useRouter()
     const [isLoading, setIsLoading] = useState(true)
+    const [repoUrl, setRepoUrl] = useState("")
+    const [analyzing, setAnalyzing] = useState(false)
+    const [error, setError] = useState("")
 
     // Scroll parallax (only animate when loaded)
     const { scrollYProgress } = useScroll()
@@ -221,6 +225,30 @@ export default function LandingPage() {
         return () => { document.body.style.overflow = "auto" }
     }, [isLoading])
 
+    const handleAnalyze = async () => {
+        const url = repoUrl.trim()
+        if (!url) {
+            setError("Please paste a GitHub repo URL")
+            return
+        }
+        // Basic URL validation
+        const isValid = /^(https?:\/\/)?(www\.)?github\.com\/[^/]+\/[^/]+\/?$/.test(url) || /^[^/]+\/[^/]+$/.test(url)
+        if (!isValid) {
+            setError("Enter a valid GitHub URL (e.g. github.com/user/repo)")
+            return
+        }
+        setError("")
+        setAnalyzing(true)
+        try {
+            await analyzeRepo(url)
+            router.push("/dashboard?source=repo")
+        } catch (err: any) {
+            setError(err?.response?.data?.detail || "Failed to analyze repo. Make sure it's a public repository.")
+        } finally {
+            setAnalyzing(false)
+        }
+    }
+
     return (
         <div className={`relative w-full bg-[#FCFCFD] overflow-x-hidden selection:bg-orange-100 selection:text-orange-900 ${GeistSans.className}`}>
 
@@ -235,9 +263,9 @@ export default function LandingPage() {
                 transition={{ duration: 0.6, ease: customEase, delay: 0.2 }}
                 className="fixed top-0 inset-x-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200/50"
             >
-                <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+                <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
                     <div className="flex items-center">
-                        <span className="text-[22px] font-bold tracking-tight" style={{ fontFamily: pixel, color: "#F97316" }}>
+                        <span className="text-[20px] sm:text-[22px] font-bold tracking-tight" style={{ fontFamily: pixel, color: "#F97316" }}>
                             OrbitX
                         </span>
                     </div>
@@ -251,13 +279,20 @@ export default function LandingPage() {
                             Try Demo
                         </button>
                     </div>
+                    {/* Mobile nav button */}
+                    <button
+                        onClick={() => router.push("/dashboard?demo=true")}
+                        className="md:hidden text-[12px] font-bold text-white bg-slate-900 hover:bg-slate-800 px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                        Try Demo
+                    </button>
                 </div>
             </motion.nav>
 
             {/* ═══════════ HERO ═══════════ */}
             <motion.section
                 style={{ y: heroY }}
-                className="relative flex flex-col items-center justify-center min-h-screen px-6 pt-20"
+                className="relative flex flex-col items-center justify-center min-h-screen px-4 sm:px-6 pt-16 sm:pt-20"
             >
                 {/* Clean SaaS Background */}
                 <div className="absolute inset-0 pointer-events-none">
@@ -274,8 +309,8 @@ export default function LandingPage() {
                     />
                 </div>
 
-                {/* Smooth Orbits */}
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                {/* Smooth Orbits — hide on small screens */}
+                <div className="absolute inset-0 hidden sm:flex items-center justify-center pointer-events-none">
                     <OrbitRing size={380} duration={18} dotSize={6} ringOpacity={0.15} dotColor="#F97316" />
                     <OrbitRing size={520} duration={26} dotSize={5} ringOpacity={0.08} dotColor="#FB923C" reverse />
                     <OrbitRing size={680} duration={38} dotSize={4} ringOpacity={0.04} dotColor="#FDBA74" dashed />
@@ -316,26 +351,90 @@ export default function LandingPage() {
                         Visualize your engineering skills as a living 3D constellation. Discover gaps, plan your career roadmap, and get recruited.
                     </motion.p>
 
+                    {/* ── REPO URL INPUT ── */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20, filter: "blur(4px)" }}
+                        animate={!isLoading ? { opacity: 1, y: 0, filter: "blur(0px)" } : {}}
+                        transition={{ duration: 0.8, ease: customEase, delay: 0.35 }}
+                        className="max-w-xl mx-auto mb-6"
+                    >
+                        <div className={`flex flex-col sm:flex-row items-stretch sm:items-center gap-0 rounded-2xl border-2 bg-white shadow-lg transition-all duration-300 ${error ? 'border-red-300 shadow-red-100' : 'border-slate-200 hover:border-orange-300 focus-within:border-orange-400 focus-within:shadow-orange-100'}`}>
+                            <div className="flex items-center flex-1">
+                                <div className="flex items-center pl-3 sm:pl-4">
+                                    <GitBranch className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />
+                                </div>
+                                <input
+                                    type="text"
+                                    value={repoUrl}
+                                    onChange={(e) => { setRepoUrl(e.target.value); setError("") }}
+                                    onKeyDown={(e) => { if (e.key === "Enter" && !analyzing) handleAnalyze() }}
+                                    placeholder="github.com/user/repo"
+                                    disabled={analyzing}
+                                    className="flex-1 px-2 sm:px-3 py-3 sm:py-3.5 text-[14px] sm:text-[15px] font-medium text-slate-900 placeholder:text-slate-400 bg-transparent border-none outline-none disabled:opacity-50 min-w-0"
+                                />
+                            </div>
+                            <motion.button
+                                whileHover={!analyzing ? { scale: 1.02 } : {}}
+                                whileTap={!analyzing ? { scale: 0.98 } : {}}
+                                onClick={handleAnalyze}
+                                disabled={analyzing}
+                                className="flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 m-1.5 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold text-[13px] sm:text-[14px] hover:from-orange-600 hover:to-orange-700 transition-all shadow-sm disabled:opacity-70 disabled:cursor-not-allowed whitespace-nowrap"
+                            >
+                                {analyzing ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        Analyzing...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Search className="w-4 h-4" />
+                                        Analyze
+                                    </>
+                                )}
+                            </motion.button>
+                        </div>
+                        {error && (
+                            <motion.p
+                                initial={{ opacity: 0, y: -4 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="text-red-500 text-[13px] font-medium mt-2 text-left pl-4"
+                            >
+                                {error}
+                            </motion.p>
+                        )}
+                    </motion.div>
+
+                    {/* ── DIVIDER ── */}
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={!isLoading ? { opacity: 1 } : {}}
+                        transition={{ duration: 0.8, ease: customEase, delay: 0.38 }}
+                        className="flex items-center gap-4 max-w-xs mx-auto mb-6"
+                    >
+                        <div className="flex-1 h-px bg-slate-200" />
+                        <span className={`text-[11px] text-slate-400 font-bold uppercase tracking-widest ${GeistMono.className}`}>or</span>
+                        <div className="flex-1 h-px bg-slate-200" />
+                    </motion.div>
+
                     <motion.div
                         initial={{ opacity: 0, y: 20, filter: "blur(4px)" }}
                         animate={!isLoading ? { opacity: 1, y: 0, filter: "blur(0px)" } : {}}
                         transition={{ duration: 0.8, ease: customEase, delay: 0.4 }}
                         className="flex flex-col sm:flex-row gap-4 justify-center items-center"
                     >
-                        <GitHubAuthButton />
                         <button
                             onClick={() => router.push("/dashboard?demo=true")}
-                            className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-white border border-slate-200 text-slate-700 font-bold text-[14px] hover:border-slate-300 hover:bg-slate-50 transition-all shadow-sm"
+                            className="flex items-center gap-2 px-8 py-3 rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold text-[15px] hover:from-orange-600 hover:to-orange-700 transition-all shadow-md"
                         >
-                            View Live Demo
+                            Try Live Demo
                         </button>
                     </motion.div>
                 </div>
             </motion.section>
 
             {/* ═══════════ STATS ═══════════ */}
-            <section className="relative py-16 bg-white border-y border-slate-200/60">
-                <div className="max-w-5xl mx-auto px-6">
+            <section className="relative py-12 sm:py-16 bg-white border-y border-slate-200/60">
+                <div className="max-w-5xl mx-auto px-4 sm:px-6">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-10 divide-y md:divide-y-0 md:divide-x divide-slate-100">
                         {[
                             { value: "AI-Powered", label: "Gap Analysis", icon: Cpu },
@@ -368,7 +467,7 @@ export default function LandingPage() {
             </section>
 
             {/* ═══════════ FEATURES ═══════════ */}
-            <section id="features" className="py-24 sm:py-32 px-6 bg-[#FCFCFD]">
+            <section id="features" className="py-16 sm:py-24 lg:py-32 px-4 sm:px-6 bg-[#FCFCFD]">
                 <div className="max-w-6xl mx-auto">
                     <div className="text-center mb-16">
                         <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight mb-4">
@@ -388,17 +487,120 @@ export default function LandingPage() {
                 </div>
             </section>
 
+            {/* ═══════════ HOW IT WORKS ═══════════ */}
+            <section id="how-it-works" className="py-16 sm:py-24 lg:py-32 px-4 sm:px-6 bg-white border-y border-slate-200/50">
+                <div className="max-w-5xl mx-auto">
+                    <div className="text-center mb-20">
+                        <motion.h2
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true, margin: "-40px" }}
+                            transition={{ duration: 0.7, ease: customEase }}
+                            className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight mb-4"
+                        >
+                            How it{" "}
+                            <span style={{ fontFamily: editorial, fontStyle: "italic", fontWeight: 400, color: "#F97316" }}>
+                                works
+                            </span>
+                        </motion.h2>
+                        <motion.p
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true, margin: "-40px" }}
+                            transition={{ duration: 0.7, ease: customEase, delay: 0.1 }}
+                            className="text-[17px] text-slate-500 max-w-xl mx-auto font-medium"
+                        >
+                            Three steps from repo to roadmap. It&apos;s that simple.
+                        </motion.p>
+                    </div>
+
+                    <div className="relative grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-8">
+                        {/* Connecting line (desktop) */}
+                        <div className="hidden md:block absolute top-[52px] left-[16.67%] right-[16.67%] h-px">
+                            <div className="w-full h-full bg-gradient-to-r from-orange-200 via-orange-300 to-orange-200" />
+                        </div>
+
+                        {[
+                            {
+                                step: "01",
+                                icon: GitBranch,
+                                title: "Connect",
+                                desc: "Link your GitHub account or paste any public repo URL to get started instantly.",
+                                gradient: "from-orange-500 to-amber-500",
+                            },
+                            {
+                                step: "02",
+                                icon: Cpu,
+                                title: "Analyze",
+                                desc: "AI scans your repos — mapping languages, frameworks, patterns, and contribution depth.",
+                                gradient: "from-slate-800 to-slate-700",
+                            },
+                            {
+                                step: "03",
+                                icon: Route,
+                                title: "Explore",
+                                desc: "Navigate your 3D skill graph, uncover gaps, and get a personalized career roadmap.",
+                                gradient: "from-orange-500 to-orange-600",
+                            },
+                        ].map((item, i) => {
+                            const stepRef = useRef(null)
+                            const stepInView = useInView(stepRef, { once: true, margin: "-40px" })
+                            return (
+                                <motion.div
+                                    ref={stepRef}
+                                    key={item.step}
+                                    initial={{ opacity: 0, y: 30 }}
+                                    animate={stepInView ? { opacity: 1, y: 0 } : {}}
+                                    transition={{ duration: 0.7, ease: customEase, delay: i * 0.15 }}
+                                    className="relative flex flex-col items-center text-center"
+                                >
+                                    {/* Step circle */}
+                                    <div className="relative z-10 mb-6">
+                                        <div className={`w-[104px] h-[104px] rounded-full bg-gradient-to-br ${item.gradient} flex items-center justify-center shadow-lg`}>
+                                            <item.icon className="w-8 h-8 text-white" strokeWidth={1.5} />
+                                        </div>
+                                        {/* Step number badge */}
+                                        <div className={`absolute -top-2 -right-2 w-9 h-9 rounded-full bg-white border-2 border-slate-100 shadow-md flex items-center justify-center`}>
+                                            <span className={`text-[11px] font-bold text-orange-600 ${GeistMono.className}`}>
+                                                {item.step}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Vertical connector (mobile) */}
+                                    {i < 2 && (
+                                        <div className="md:hidden w-px h-8 bg-gradient-to-b from-orange-200 to-transparent -mt-2 mb-2" />
+                                    )}
+
+                                    <h3 className="text-xl font-bold text-slate-900 mb-2 tracking-tight">
+                                        {item.title}
+                                    </h3>
+                                    <p className="text-[14px] text-slate-500 leading-relaxed max-w-[260px] font-medium">
+                                        {item.desc}
+                                    </p>
+                                </motion.div>
+                            )
+                        })}
+                    </div>
+                </div>
+            </section>
+
             {/* ═══════════ CTA ═══════════ */}
-            <section className="py-24 px-6 bg-white border-t border-slate-200/50">
+            <section className="py-16 sm:py-24 px-4 sm:px-6 bg-white border-t border-slate-200/50">
                 <div className="max-w-4xl mx-auto text-center">
                     <h2 className="text-3xl sm:text-4xl text-slate-900 font-bold tracking-tight mb-6">
                         Ready to decode <span style={{ fontFamily: editorial, fontStyle: "italic", color: "#F97316" }}>your potential?</span>
                     </h2>
                     <p className="text-[17px] text-slate-500 mb-10 font-medium">
-                        Connect your GitHub in seconds. No credit card required.
+                        Explore your skill graph instantly.
                     </p>
                     <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                        <GitHubAuthButton />
+                        <button
+                            onClick={() => router.push("/dashboard?demo=true")}
+                            className="flex items-center gap-2 px-8 py-3 rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold text-[15px] hover:from-orange-600 hover:to-orange-700 transition-all shadow-md"
+                        >
+                            Try Live Demo
+                        </button>
                     </div>
                 </div>
             </section>

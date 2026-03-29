@@ -21,6 +21,10 @@ const pixelify = Pixelify_Sans({
 export const metadata: Metadata = {
     title: 'OrbitX — 3D Knowledge Graph Builder',
     description: 'AI-powered career intelligence platform. Connect GitHub, Notion & Certifications to visualize your skills as an interactive 3D knowledge graph.',
+    icons: {
+        icon: '/favicon.svg',
+        apple: '/favicon.svg',
+    },
 }
 
 export default function RootLayout({

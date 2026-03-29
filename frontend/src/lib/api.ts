@@ -54,4 +54,9 @@ export const syncGithubGraph = async (token: string) => {
     return res.data
 }
 
+export const analyzeRepo = async (url: string) => {
+    const res = await api.post('/graph/analyze-repo', { url })
+    return res.data
+}
+
 export default api

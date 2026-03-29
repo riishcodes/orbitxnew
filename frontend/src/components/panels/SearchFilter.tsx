@@ -8,7 +8,7 @@ export default function SearchFilter() {
     const { searchTerm, setSearchTerm, filterCategory, setFilterCategory } = useGraphStore()
 
     return (
-        <div className="absolute top-3 left-3 md:top-4 md:left-4 z-10 flex flex-col gap-2 max-w-[calc(100%-24px)] md:max-w-none">
+        <div id="tour-search" className="absolute top-3 left-3 md:top-4 md:left-4 z-10 flex flex-col gap-2 max-w-[calc(100%-24px)] md:max-w-none">
             {/* Search input */}
             <input
                 value={searchTerm}

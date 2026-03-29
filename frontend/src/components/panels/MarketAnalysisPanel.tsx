@@ -3,6 +3,7 @@ import { useMemo } from "react"
 import { motion } from "framer-motion"
 import { useGraphStore } from "@/stores/graphStore"
 import { CATEGORY_COLORS } from "@/lib/mock-data"
+import AnimatedCounter from "@/components/ui/AnimatedCounter"
 
 const stagger = {
     hidden: {},
@@ -78,9 +79,9 @@ export default function MarketAnalysisPanel() {
 
             {/* Key Stats */}
             <motion.div variants={fadeUp} className="grid grid-cols-3 gap-2">
-                <StatCard label="Avg Demand" value={`${avgDemand}%`} color={avgDemand >= 75 ? "#10B981" : avgDemand >= 50 ? "#F59E0B" : "#EF4444"} />
-                <StatCard label="🔥 Hot Skills" value={`${highDemand.length}`} color="#EF4444" />
-                <StatCard label="⚠️ Low Demand" value={`${lowDemand.length}`} color="#F59E0B" />
+                <StatCard label="Avg Demand" value={avgDemand} suffix="%" color={avgDemand >= 75 ? "#10B981" : avgDemand >= 50 ? "#F59E0B" : "#EF4444"} />
+                <StatCard label="🔥 Hot Skills" value={highDemand.length} color="#EF4444" />
+                <StatCard label="⚠️ Low Demand" value={lowDemand.length} color="#F59E0B" />
             </motion.div>
 
             {/* Category Breakdown */}
@@ -175,11 +176,13 @@ export default function MarketAnalysisPanel() {
     )
 }
 
-function StatCard({ label, value, color }: { label: string; value: string; color: string }) {
+function StatCard({ label, value, suffix, color }: { label: string; value: number; suffix?: string; color: string }) {
     return (
         <div className="p-3 rounded-lg bg-slate-50 border border-slate-100 text-center">
             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{label}</p>
-            <p className="text-lg font-bold mt-0.5" style={{ color }}>{value}</p>
+            <p className="text-lg font-bold mt-0.5" style={{ color }}>
+                <AnimatedCounter value={value} suffix={suffix || ""} duration={1200} />
+            </p>
         </div>
     )
 }

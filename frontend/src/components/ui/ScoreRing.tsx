@@ -60,15 +60,21 @@ export default function ScoreRing({
                     x="50" y="52" textAnchor="middle" fill="#0F172A"
                     className="font-sans font-bold"
                 >
-                    <tspan fontSize="20">{displayed}</tspan>
-                    <tspan fontSize="10" dx="1" dy="-6" fontFamily="var(--font-geist-mono)">%</tspan>
+                    <tspan fontSize={size < 100 ? "24" : "20"}>{displayed}</tspan>
+                    <tspan fontSize={size < 100 ? "11" : "10"} dx="1" dy="-6" fontFamily="var(--font-geist-mono)">%</tspan>
                 </text>
                 <text
-                    x="50" y="68" textAnchor="middle" fill="#0F172A"
-                    fontSize="6" fontFamily="var(--font-geist-mono)"
-                    letterSpacing="0.15em"
+                    x="50" y={label.includes(" ") ? "65" : "68"} textAnchor="middle" fill="#0F172A"
+                    fontSize={size < 100 ? "8.5" : "7.5"}
+                    fontFamily="var(--font-geist-mono)"
+                    letterSpacing="0.12em"
+                    fontWeight="600"
                 >
-                    {label.toUpperCase()}
+                    {label.split(" ").map((word, i) => (
+                        <tspan key={i} x="50" dy={i > 0 ? "9" : "0"}>
+                            {word.toUpperCase()}
+                        </tspan>
+                    ))}
                 </text>
             </svg>
         </div>

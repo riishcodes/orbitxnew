@@ -11,6 +11,7 @@ import { useGraphStore } from "@/stores/graphStore"
 import { useSkillStore } from "@/stores/skillStore"
 import { CATEGORY_COLORS } from "@/lib/mock-data"
 import ScoreRing from "@/components/ui/ScoreRing"
+import AnimatedCounter from "@/components/ui/AnimatedCounter"
 
 const CATEGORY_LABELS: Record<string, string> = {
     frontend: "Frontend",
@@ -197,7 +198,7 @@ export default function AnalyticsPage() {
                         transition={{ delay: 0.3 }}
                         className="bg-white rounded-xl p-6 flex flex-col items-center justify-center shadow-sm border border-slate-100"
                     >
-                        <p className="text-3xl font-bold text-amber-600">{skills.length}</p>
+                        <p className="text-3xl font-bold text-amber-600"><AnimatedCounter value={skills.length} duration={1500} /></p>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1">Total Skills</p>
                     </motion.div>
                 </div>

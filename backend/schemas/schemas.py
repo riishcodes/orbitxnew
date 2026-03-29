@@ -17,6 +17,10 @@ class GitHubSyncRequest(BaseModel):
     token: str
 
 
+class RepoAnalyzeRequest(BaseModel):
+    url: str
+
+
 # --- Skill ---
 class SkillNode(BaseModel):
     id: str
