@@ -294,6 +294,12 @@ export default function LandingPage() {
     const { scrollYProgress } = useScroll()
     const heroY = useTransform(scrollYProgress, [0, 0.2], [0, -40])
 
+    // Wake up Render backend (free tier sleeps after inactivity)
+    useEffect(() => {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+        fetch(`${apiUrl}/health`).catch(() => {})
+    }, [])
+
     // Lock scroll during preloader
     useEffect(() => {
         if (isLoading) {
