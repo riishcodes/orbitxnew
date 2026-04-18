@@ -4,7 +4,7 @@ Supports multiple analysis engines: OrbitX (local), Gemini, Grok.
 """
 
 from typing import List, Dict
-from services.ai_service import _get_model
+from services.ai_service import _get_model, _is_off_topic
 from services.graph_service import get_graph
 from services.market_data import get_market_demand
 from config import settings
@@ -146,23 +146,6 @@ When asked "what should I learn", tell them bluntly what's holding them back and
 When asked for interview prep, tell them what will make interviewers cringe and what will impress them.""",
 }
 
-
-# Fast pre-check: topics that are clearly off-topic (saves API calls)
-_OFF_TOPIC_KEYWORDS = [
-    "recipe", "cook", "food", "restaurant", "meal", "diet", "workout", "gym",
-    "movie", "film", "series", "netflix", "music", "song", "lyrics",
-    "politics", "election", "government", "president", "war", "country",
-    "relationship", "girlfriend", "boyfriend", "dating", "love",
-    "sports", "football", "cricket", "tennis", "basketball",
-    "weather", "horoscope", "astrology", "religion", "god",
-    "homework", "essay", "history", "geography", "biology", "chemistry",
-    "stock market", "crypto", "bitcoin", "investment", "money",
-]
-
-def _is_off_topic(message: str) -> bool:
-    """Fast check: is this message clearly off-topic for a tech career coach?"""
-    msg_lower = message.lower()
-    return any(kw in msg_lower for kw in _OFF_TOPIC_KEYWORDS)
 
 _OFF_TOPIC_REPLY = "I'm OrbitX AI — I only help with tech and developer career questions. Try asking about your skills, what to learn next, or how to prep for interviews! 🚀"
 

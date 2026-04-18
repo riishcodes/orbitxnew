@@ -200,3 +200,25 @@ def _mock_roadmap(target_role: str, gaps: List[Dict]) -> dict:
         "total_duration": "4 months",
         "career_readiness_after": 82,
     }
+
+
+# ═══════════════════════════════════════════════════════════
+#  OFF-TOPIC VALIDATION
+# ═══════════════════════════════════════════════════════════
+
+_OFF_TOPIC_KEYWORDS = [
+    "recipe", "cook", "food", "restaurant", "meal", "diet", "workout", "gym",
+    "movie", "film", "series", "netflix", "music", "song", "lyrics",
+    "politics", "election", "government", "president", "war", "country",
+    "relationship", "girlfriend", "boyfriend", "dating", "love",
+    "sports", "football", "cricket", "tennis", "basketball",
+    "weather", "horoscope", "astrology", "religion", "god",
+    "homework", "essay", "history", "geography", "biology", "chemistry",
+    "stock market", "crypto", "bitcoin", "investment", "money",
+]
+
+
+def _is_off_topic(message: str) -> bool:
+    """Fast check: is this message clearly off-topic for a tech career coach?"""
+    msg_lower = message.lower()
+    return any(kw in msg_lower for kw in _OFF_TOPIC_KEYWORDS)
