@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routes import auth, github, notion, certifications, graph, career, recruiter
+from routes import auth, github, notion, certifications, graph, career, recruiter, chat, profile
 
 app = FastAPI(
     title="3D Knowledge Graph API",
@@ -26,6 +26,8 @@ app.include_router(certifications.router, prefix="/certifications")
 app.include_router(graph.router,          prefix="/graph")
 app.include_router(career.router,         prefix="/career")
 app.include_router(recruiter.router,      prefix="/recruiter")
+app.include_router(chat.router,           prefix="/chat")
+app.include_router(profile.router,        prefix="/profile")
 
 
 @app.get("/")

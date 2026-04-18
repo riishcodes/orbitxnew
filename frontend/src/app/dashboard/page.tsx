@@ -5,12 +5,13 @@ import { useEffect, useState, Suspense } from "react"
 import { useGraphStore } from "@/stores/graphStore"
 import { useSkillStore } from "@/stores/skillStore"
 import { useAuthStore } from "@/stores/authStore"
-import { MOCK_GRAPH, MOCK_USER, MOCK_GAPS, CATEGORY_COLORS } from "@/lib/mock-data"
+import { CATEGORY_COLORS } from "@/lib/mock-data"
 import Topbar from "@/components/layout/Topbar"
 import DashboardTour from "@/components/layout/DashboardTour"
 import InsightPanel from "@/components/panels/InsightPanel"
 import MarketAnalysisPanel from "@/components/panels/MarketAnalysisPanel"
 import RecruiterCard from "@/components/panels/RecruiterCard"
+import CopilotPanel from "@/components/panels/CopilotPanel"
 import SearchFilter from "@/components/panels/SearchFilter"
 import PanelSkeleton from "@/components/ui/PanelSkeleton"
 import { motion, AnimatePresence } from "framer-motion"
@@ -21,10 +22,10 @@ const KnowledgeGraph3D = dynamic(
     {
         ssr: false,
         loading: () => (
-            <div className="flex items-center justify-center w-full h-full bg-[#030712]">
+            <div className="flex items-center justify-center w-full h-full bg-[#F8F9FA]">
                 <div className="text-center">
-                    <div className="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-                    <p className="text-xs font-mono text-slate-600">Loading 3D Graph...</p>
+                    <div className="w-8 h-8 border-2 border-[#F97316] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                    <p className="text-xs font-mono text-slate-400">Building your graph...</p>
                 </div>
             </div>
         ),
@@ -34,13 +35,13 @@ const KnowledgeGraph3D = dynamic(
 function DashboardContent() {
     const searchParams = useSearchParams()
     const isDemo = searchParams.get("demo") === "true"
-    const { setGraphData, graphData, showInsights, marketOverlay, recruiterMode } = useGraphStore()
+    const { setGraphData, graphData, showInsights, marketOverlay, recruiterMode, copilotMode } = useGraphStore()
     const { setCurrentScore, setGaps } = useSkillStore()
     const { setUser, setIsDemo } = useAuthStore()
 
     const [panelLoading, setPanelLoading] = useState(false)
     const [isHydrated, setIsHydrated] = useState(false)
-    const panelKey = `${showInsights}-${marketOverlay}-${recruiterMode}`
+    const panelKey = `${showInsights}-${marketOverlay}-${recruiterMode}-${copilotMode}`
 
     // Show skeleton briefly when switching panels
     useEffect(() => {
@@ -95,7 +96,7 @@ function DashboardContent() {
         fetchCareer()
     }, [setIsDemo, setGraphData, setCurrentScore, setGaps])
 
-    const panelOpen = showInsights || marketOverlay || recruiterMode
+    const panelOpen = showInsights || marketOverlay || recruiterMode || copilotMode
 
     return (
         <div className="flex flex-col h-screen bg-[#F8F9FA]">
@@ -140,6 +141,7 @@ function DashboardContent() {
                                     if (showInsights) useGraphStore.getState().toggleInsights()
                                     if (marketOverlay) useGraphStore.getState().toggleMarketOverlay()
                                     if (recruiterMode) useGraphStore.getState().toggleRecruiterMode()
+                                    if (copilotMode) useGraphStore.getState().toggleCopilotMode()
                                 }}
                             />
 
@@ -158,13 +160,14 @@ function DashboardContent() {
                                 {/* Mobile Panel Header with Close Button */}
                                 <div className="lg:hidden flex items-center justify-between p-4 border-b border-slate-100 bg-white sticky top-0 z-50">
                                     <span className="text-sm font-bold text-slate-900">
-                                        {recruiterMode ? "Recruiter View" : marketOverlay ? "Market Analysis" : "Insights"}
+                                        {copilotMode ? "AI Copilot" : recruiterMode ? "Recruiter View" : marketOverlay ? "Market Analysis" : "Insights"}
                                     </span>
                                     <button 
                                         onClick={() => {
                                             if (showInsights) useGraphStore.getState().toggleInsights()
                                             if (marketOverlay) useGraphStore.getState().toggleMarketOverlay()
                                             if (recruiterMode) useGraphStore.getState().toggleRecruiterMode()
+                                            if (copilotMode) useGraphStore.getState().toggleCopilotMode()
                                         }}
                                         className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100/80 text-slate-500 hover:bg-slate-200 transition-colors"
                                     >
@@ -173,7 +176,7 @@ function DashboardContent() {
                                 </div>
 
                                 <div className="min-w-0 lg:min-w-[400px] pb-8 lg:pb-0">
-                                    {panelLoading ? <PanelSkeleton /> : recruiterMode ? <RecruiterCard /> : marketOverlay ? <MarketAnalysisPanel /> : <InsightPanel />}
+                                    {panelLoading ? <PanelSkeleton /> : copilotMode ? <CopilotPanel /> : recruiterMode ? <RecruiterCard /> : marketOverlay ? <MarketAnalysisPanel /> : <InsightPanel />}
                                 </div>
                             </motion.div>
                         </>

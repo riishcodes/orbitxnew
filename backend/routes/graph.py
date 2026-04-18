@@ -40,8 +40,8 @@ async def sync_github_graph(payload: GitHubSyncRequest):
 async def analyze_repo(payload: RepoAnalyzeRequest):
     """Analyze a public GitHub repo by URL — no auth needed."""
     try:
-        print(f"DEBUG: Analyzing repo URL: {payload.url}")
-        data = await analyze_public_repo(payload.url)
+        print(f"DEBUG: Analyzing repo URL: {payload.url} (engine: {payload.engine})")
+        data = await analyze_public_repo(payload.url, engine=payload.engine or "orbitx")
         save_graph(data["nodes"], data["links"])
         print(f"DEBUG: Analysis complete. {len(data['nodes'])} nodes, {len(data['links'])} links.")
         return {

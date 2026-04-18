@@ -387,21 +387,48 @@ def get_all_tech_names() -> List[str]:
 
 def match_technologies(text: str) -> List[Dict]:
     """
-    Scan text against the full tech directory.
+    Scan text against the full tech directory using word-boundary matching.
     Returns list of {"name": ..., "category": ..., "confidence": ...}
     """
+    import re
+
     text_lower = text.lower()
     found: Dict[str, str] = {}  # canonical name -> category
+
+    # Aliases that are too short or ambiguous for word-boundary matching.
+    # These need extra context (e.g., "go" alone would match too much).
+    _SKIP_STANDALONE = {"go", "r", "c", "dart", "gin ", "lua", "koa", "ts", "js", "py", "rb", "sh"}
 
     for canonical, (category, aliases) in TECH_DIRECTORY.items():
         if canonical in found:
             continue
         for alias in aliases:
-            if alias in text_lower:
-                found[canonical] = category
-                break
+            # Skip very short/ambiguous aliases
+            if alias.strip() in _SKIP_STANDALONE:
+                continue
+
+            # For file extensions like .tsx, .ts, .py — match literally
+            if alias.startswith("."):
+                if alias in text_lower:
+                    found[canonical] = category
+                    break
+                continue
+
+            # Use word-boundary regex to avoid partial matches
+            # e.g., "java" won't match inside "javascript"
+            try:
+                pattern = r'\b' + re.escape(alias.strip()) + r'\b'
+                if re.search(pattern, text_lower):
+                    found[canonical] = category
+                    break
+            except re.error:
+                # Fallback to simple match for weird patterns
+                if alias in text_lower:
+                    found[canonical] = category
+                    break
 
     return [
         {"name": name, "category": cat, "confidence": 0.7}
         for name, cat in found.items()
     ]
+

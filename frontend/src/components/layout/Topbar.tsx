@@ -1,19 +1,23 @@
 "use client"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useGraphStore } from "@/stores/graphStore"
 import { useTourStore } from "@/stores/tourStore"
 import { Button } from "@/components/ui/button"
+import EngineToggle from "@/components/ui/EngineToggle"
 import { useState, useRef, useEffect } from "react"
 
 export default function Topbar() {
     const router = useRouter()
+    const searchParams = useSearchParams()
+    const isQuickMode = searchParams.get('mode') === 'quick'
     const [profileOpen, setProfileOpen] = useState(false)
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
     const profileRef = useRef<HTMLDivElement>(null)
     const {
         marketOverlay, toggleMarketOverlay,
         recruiterMode, toggleRecruiterMode,
-        showInsights, toggleInsights
+        showInsights, toggleInsights,
+        copilotMode, toggleCopilotMode
     } = useGraphStore()
     const { startTour } = useTourStore()
 
@@ -37,20 +41,21 @@ export default function Topbar() {
                         onClick={() => router.push("/")}
                         className="flex items-center gap-3 hover:opacity-80 transition-opacity"
                     >
-                        <span className="text-2xl md:text-3xl font-bold text-[#FF7A00] block leading-none font-pixel tracking-wider">OrbitX</span>
+                        <span className="text-2xl md:text-3xl font-bold text-[#F97316] block leading-none font-pixel tracking-wider">OrbitX</span>
                     </button>
                 </div>
 
                 {/* Desktop Controls Bar */}
                 <div id="tour-controls" className="hidden md:flex items-center gap-1 md:gap-2 bg-white border border-slate-200 shadow-sm rounded-xl px-2 py-1.5 justify-center">
                     <ToggleButton label="Insights" active={showInsights} onClick={toggleInsights} />
-                    <ToggleButton label="Market" shortLabel="Market" active={marketOverlay} onClick={toggleMarketOverlay} />
-                    <ToggleButton label="Recruiter" shortLabel="Recruiter" active={recruiterMode} onClick={toggleRecruiterMode} />
+                    <ToggleButton label="Market" shortLabel="Market" active={marketOverlay} onClick={toggleMarketOverlay} locked={isQuickMode} />
+                    <ToggleButton label="Recruiter" shortLabel="Recruiter" active={recruiterMode} onClick={toggleRecruiterMode} locked={isQuickMode} />
+                    <ToggleButton label="🤖 Copilot" shortLabel="Copilot" active={copilotMode} onClick={toggleCopilotMode} locked={isQuickMode} />
                     <div className="w-[1px] h-4 bg-slate-200 mx-1 md:mx-2 hidden sm:block" />
                     <Button
                         variant="ghost"
                         onClick={() => router.push("/dashboard/analytics")}
-                        className="px-3 md:px-4 py-1.5 text-[10px] md:text-[11px] font-bold text-slate-600 hover:text-[#FF7A00] uppercase tracking-wider h-auto"
+                        className="px-3 md:px-4 py-1.5 text-[10px] md:text-[11px] font-bold text-slate-600 hover:text-[#F97316] uppercase tracking-wider h-auto"
                     >
                         Analytics
                     </Button>
@@ -68,6 +73,8 @@ export default function Topbar() {
                         </svg>
                         Tour
                     </Button>
+                    <div className="w-[1px] h-4 bg-slate-200 mx-1 md:mx-2 hidden sm:block" />
+                    <EngineToggle />
                 </div>
 
                 {/* Desktop Profile Section */}
@@ -164,6 +171,11 @@ export default function Topbar() {
                                     active={recruiterMode}
                                     onClick={() => { toggleRecruiterMode(); setMobileMenuOpen(false) }}
                                 />
+                                <MobileMenuButton
+                                    label="🤖 AI Copilot"
+                                    active={copilotMode}
+                                    onClick={() => { toggleCopilotMode(); setMobileMenuOpen(false) }}
+                                />
                             </div>
 
                             {/* Navigation */}
@@ -205,20 +217,27 @@ function MobileMenuButton({
     label,
     active,
     onClick,
+    locked,
 }: {
     label: string
     active?: boolean
     onClick: () => void
+    locked?: boolean
 }) {
     return (
         <button
-            onClick={onClick}
-            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-[13px] font-bold transition-all ${active
+            onClick={locked ? undefined : onClick}
+            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-[13px] font-bold transition-all ${
+                locked ? "opacity-50 cursor-not-allowed text-slate-400" :
+                active
                     ? "bg-orange-50 text-orange-600"
                     : "text-slate-600 hover:bg-slate-50"
                 }`}
         >
-            <span>{label}</span>
+            <div className="flex items-center gap-2">
+                {locked && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>}
+                <span>{label}</span>
+            </div>
             {active !== undefined && (
                 <span className={`w-2 h-2 rounded-full ${active ? "bg-orange-500" : "bg-slate-200"}`} />
             )}
@@ -279,21 +298,31 @@ function ToggleButton({
     shortLabel,
     active,
     onClick,
+    locked,
 }: {
     label: string
     shortLabel?: string
     active: boolean
     onClick: () => void
+    locked?: boolean
 }) {
     return (
         <Button
             variant="ghost"
-            onClick={onClick}
-            className={`px-2 md:px-4 py-1.5 text-[10px] md:text-[11px] font-bold rounded-lg transition-all uppercase tracking-wider h-auto ${active ? "bg-[#FF7A00]/10 text-[#FF7A00] hover:bg-[#FF7A00]/20 hover:text-[#FF7A00]" : "text-slate-500 hover:text-slate-900"
+            onClick={locked ? undefined : onClick}
+            className={`px-2 md:px-4 py-1.5 text-[10px] md:text-[11px] font-bold rounded-lg transition-all uppercase tracking-wider h-auto ${
+                locked ? "opacity-50 cursor-not-allowed bg-slate-50 text-slate-400 border border-slate-200 border-dashed" :
+                active ? "bg-[#F97316]/10 text-[#F97316] hover:bg-[#F97316]/20 hover:text-[#F97316]" : "text-slate-500 hover:text-slate-900"
                 }`}
         >
-            <span className="hidden sm:inline">{label}</span>
-            <span className="sm:hidden">{shortLabel || label}</span>
+            <span className="hidden sm:flex items-center gap-1.5">
+                {locked && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>}
+                {label}
+            </span>
+            <span className="sm:hidden flex items-center gap-1">
+                {locked && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>}
+                {shortLabel || label}
+            </span>
         </Button>
     )
 }

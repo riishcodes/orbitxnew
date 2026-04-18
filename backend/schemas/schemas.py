@@ -19,6 +19,7 @@ class GitHubSyncRequest(BaseModel):
 
 class RepoAnalyzeRequest(BaseModel):
     url: str
+    engine: Optional[str] = "orbitx"
 
 
 # --- Skill ---
@@ -63,6 +64,7 @@ class CareerReadinessResponse(BaseModel):
 
 class WhatIfRequest(BaseModel):
     add_skills: List[str]
+    engine: Optional[str] = "orbitx"
 
 
 class WhatIfResponse(BaseModel):
@@ -70,6 +72,7 @@ class WhatIfResponse(BaseModel):
     new_score: float
     score_delta: float
     simulated_skills: List[str]
+    reason: Optional[str] = None
 
 
 # --- Roadmap ---

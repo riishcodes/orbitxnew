@@ -110,14 +110,23 @@ async def get_career_readiness(target_role: str = "Full Stack Developer"):
 
 @router.post("/whatif", response_model=WhatIfResponse)
 async def what_if_simulation(req: WhatIfRequest):
-    """Simulate adding skills and show how readiness score changes."""
-    # Get the current real score
+    """Simulate adding skills and show how readiness score changes (Gemini-powered)."""
     graph = get_graph()
     user_nodes = graph.get("nodes", [])
-    skill_count = len([n for n in user_nodes if n.get("category") != "repo"])
-    # Approximate current score from graph data
+    skill_nodes = [n for n in user_nodes if n.get("category") != "repo"]
+    skill_count = len(skill_nodes)
+
+    # Approximate current score
     current_score = min(100, skill_count * 5.0) if skill_count > 0 else 30
-    result = whatif_simulation(current_score, req.add_skills)
+
+    # Build context string for Gemini
+    if skill_nodes:
+        lines = [f"{n['name']} ({n.get('category','?')}, maturity: {n.get('maturity',50):.0f}%, demand: {n.get('market_demand',70):.0f}%)" for n in sorted(skill_nodes, key=lambda x: x.get('maturity',0), reverse=True)[:15]]
+        graph_context = "Current skills:\n" + "\n".join(f"  - {l}" for l in lines)
+    else:
+        graph_context = ""
+
+    result = whatif_simulation(current_score, req.add_skills, graph_context, engine=req.engine or "orbitx")
     return WhatIfResponse(**result)
 
 

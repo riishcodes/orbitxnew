@@ -3,6 +3,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     gemini_api_key: str = ""
+    openrouter_api_key: str = ""
     github_client_id: str = ""
     github_client_secret: str = ""
     github_token: str = ""

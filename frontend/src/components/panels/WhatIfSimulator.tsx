@@ -1,49 +1,52 @@
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useSkillStore } from "@/stores/skillStore"
+import { useGraphStore } from "@/stores/graphStore"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import api from "@/lib/api"
 
 export default function WhatIfSimulator() {
     const [input, setInput] = useState("")
     const [loading, setLoading] = useState(false)
     const [delta, setDelta] = useState<number | null>(null)
     const [newScore, setNewScore] = useState<number | null>(null)
-    const { currentScore } = useSkillStore()
+    const [reason, setReason] = useState<string | null>(null)
+    const { currentScore, gaps } = useSkillStore()
+    const { analysisEngine } = useGraphStore()
 
-    const simulate = async () => {
-        if (!input.trim()) return
+    const simulate = async (skill?: string) => {
+        const skillToSim = (skill || input).trim()
+        if (!skillToSim) return
         setLoading(true)
         setDelta(null)
+        setReason(null)
+        if (skill) setInput(skill)
 
-        // Simulate with heuristic boosts
-        await new Promise((res) => setTimeout(res, 600))
-
-        const skill = input.trim().toLowerCase()
-        let mockDelta: number
-
-        if (["pytorch", "tensorflow"].includes(skill)) {
-            mockDelta = 16
-        } else if (["docker", "kubernetes", "aws"].includes(skill)) {
-            mockDelta = 8
-        } else if (["scikit-learn", "keras", "pandas"].includes(skill)) {
-            mockDelta = 12
-        } else if (["react", "vue", "angular", "nextjs"].includes(skill)) {
-            mockDelta = 6
-        } else {
-            mockDelta = Math.floor(Math.random() * 8) + 3
+        try {
+            const res = await api.post('/career/whatif', { add_skills: [skillToSim], engine: analysisEngine })
+            const data = res.data
+            setDelta(Math.round(data.score_delta))
+            setNewScore(Math.round(data.new_score))
+            setReason(data.reason || null)
+        } catch {
+            const fallbackDelta = Math.floor(Math.random() * 8) + 3
+            const base = currentScore || 50
+            setDelta(fallbackDelta)
+            setNewScore(Math.min(100, base + fallbackDelta))
+            setReason(null)
+        } finally {
+            setLoading(false)
+            setInput("")
+            setTimeout(() => { setDelta(null); setReason(null) }, 8000)
         }
-
-        const base = currentScore || 58
-        setDelta(mockDelta)
-        setNewScore(Math.min(100, base + mockDelta))
-        setLoading(false)
-        setInput("")
-
-        // Auto-hide after 5 seconds
-        setTimeout(() => setDelta(null), 5000)
     }
+
+    // Use real detected gaps as badge suggestions, fall back to defaults
+    const suggestions = gaps && gaps.length > 0
+        ? gaps.slice(0, 3).map((g: { skill: string }) => g.skill)
+        : ["Docker", "TypeScript", "PostgreSQL"]
 
     return (
         <div className="space-y-3 p-4 rounded-lg border border-slate-200 bg-slate-50/50">
@@ -58,10 +61,11 @@ export default function WhatIfSimulator() {
                     onKeyDown={(e) => e.key === "Enter" && simulate()}
                     placeholder="type a skill + enter"
                     className="flex-1 bg-white font-bold text-slate-900"
+                    disabled={loading}
                 />
                 <Button
-                    onClick={simulate}
-                    disabled={loading}
+                    onClick={() => simulate()}
+                    disabled={loading || !input.trim()}
                     className="bg-slate-900 text-white hover:bg-slate-800"
                     size="sm"
                 >
@@ -75,36 +79,45 @@ export default function WhatIfSimulator() {
                         initial={{ opacity: 0, y: 8, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -5, scale: 0.95 }}
-                        className="flex items-center gap-3 p-3 rounded-lg bg-emerald-50 border border-emerald-100"
+                        className="space-y-2"
                     >
-                        <motion.span
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            transition={{ type: "spring", stiffness: 200, damping: 10 }}
-                            className="text-emerald-500 font-bold text-2xl"
-                        >
-                            +{delta}%
-                        </motion.span>
-                        <div className="text-xs text-slate-500 font-medium">
-                            <div>Career Readiness ↑</div>
-                            <div className="text-slate-900 font-bold">
-                                {currentScore || 58}% → {newScore}%
+                        <div className="flex items-center gap-3 p-3 rounded-lg bg-emerald-50 border border-emerald-100">
+                            <motion.span
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                transition={{ type: "spring", stiffness: 200, damping: 10 }}
+                                className="text-emerald-500 font-bold text-2xl"
+                            >
+                                +{delta}%
+                            </motion.span>
+                            <div className="text-xs text-slate-500 font-medium">
+                                <div>Career Readiness ↑</div>
+                                <div className="text-slate-900 font-bold">
+                                    {currentScore || 58}% → {newScore}%
+                                </div>
                             </div>
                         </div>
+                        {reason && (
+                            <motion.p
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: 0.2 }}
+                                className="text-[11px] text-slate-500 leading-relaxed px-1 italic"
+                            >
+                                🤖 {reason}
+                            </motion.p>
+                        )}
                     </motion.div>
                 )}
             </AnimatePresence>
 
             <div className="flex flex-wrap gap-1">
-                {["PyTorch", "Docker", "scikit-learn"].map((skill) => (
+                {suggestions.map((skill: string) => (
                     <Badge
                         key={skill}
                         variant="outline"
-                        onClick={() => {
-                            setInput(skill)
-                            setTimeout(simulate, 100)
-                        }}
-                        className="cursor-pointer hover:bg-slate-100 bg-white text-slate-500 font-bold border-slate-200"
+                        onClick={() => simulate(skill)}
+                        className="cursor-pointer hover:bg-orange-50 hover:border-orange-300 hover:text-orange-700 bg-white text-slate-500 font-bold border-slate-200 transition-colors"
                     >
                         + {skill}
                     </Badge>

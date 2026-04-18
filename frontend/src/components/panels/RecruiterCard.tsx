@@ -1,13 +1,15 @@
 "use client"
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { motion } from "framer-motion"
 import { useGraphStore } from "@/stores/graphStore"
 import { useSkillStore } from "@/stores/skillStore"
+import { useAuthStore } from "@/stores/authStore"
 import { CATEGORY_COLORS } from "@/lib/mock-data"
 import ScoreRing from "@/components/ui/ScoreRing"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import api from "@/lib/api"
 
 const stagger = {
     hidden: {},
@@ -21,6 +23,23 @@ const fadeUp = {
 export default function RecruiterCard() {
     const { graphData } = useGraphStore()
     const { currentScore, targetRole } = useSkillStore()
+    const { user } = useAuthStore()
+    const [shareStatus, setShareStatus] = useState<"idle" | "loading" | "copied">("idle")
+
+    const handleShareProfile = async () => {
+        setShareStatus("loading")
+        try {
+            const username = user?.username || "developer"
+            const res = await api.post("/profile/generate", { username })
+            const profileUrl = `${window.location.origin}/profile/${res.data.slug}`
+            await navigator.clipboard.writeText(profileUrl)
+            setShareStatus("copied")
+            setTimeout(() => setShareStatus("idle"), 3000)
+        } catch (err) {
+            setShareStatus("idle")
+            alert("Share failed — make sure you have graph data first.")
+        }
+    }
 
     const allNodes = graphData.nodes
     const skills = useMemo(() => allNodes.filter((n) => n.category !== "repo"), [allNodes])
@@ -96,18 +115,29 @@ export default function RecruiterCard() {
             id="recruiter-card"
         >
             {/* Header */}
-            <motion.div variants={fadeUp} className="flex items-center justify-between">
+            <motion.div variants={fadeUp} className="flex items-center justify-between gap-2 flex-wrap">
                 <h2 className="text-sm font-bold text-orange-500 uppercase tracking-[0.2em]">
                     Recruiter View
                 </h2>
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => exportPDF()}
-                    className="text-[10px] font-bold h-7 border-slate-200 text-slate-500 hover:text-orange-600 hover:border-orange-200"
-                >
-                    Export PDF
-                </Button>
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleShareProfile}
+                        disabled={shareStatus === "loading"}
+                        className="text-[10px] font-bold h-7 border-emerald-200 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 gap-1"
+                    >
+                        {shareStatus === "copied" ? "✓ Link Copied!" : shareStatus === "loading" ? "Generating..." : "🔗 Share Profile"}
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => exportPDF()}
+                        className="text-[10px] font-bold h-7 border-slate-200 text-slate-500 hover:text-orange-600 hover:border-orange-200"
+                    >
+                        Export PDF
+                    </Button>
+                </div>
             </motion.div>
 
             {/* Profile Summary */}
@@ -119,7 +149,7 @@ export default function RecruiterCard() {
                         </div>
                         <div>
                             <p className="text-xs font-bold text-slate-900">
-                                {repos.length} Projects · {skills.length} Skills
+                                {user?.name || user?.username || "Developer"} · {repos.length} Projects · {skills.length} Skills
                             </p>
                             <p className="text-[10px] font-medium text-slate-500">
                                 Target: {targetRole}

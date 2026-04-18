@@ -1,58 +1,83 @@
 from fastapi import APIRouter
 
-from seed_data import DEMO_USER, DEMO_NODES
+from services.graph_service import get_graph
 
 router = APIRouter(tags=["recruiter"])
 
 
 @router.get("/profile")
 async def get_recruiter_profile():
-    """Generate recruiter evaluation profile for the current user."""
-    nodes = DEMO_NODES
+    """Generate recruiter evaluation profile from real graph data."""
+    graph = get_graph()
+    nodes = graph.get("nodes", [])
+
+    # If no data, return empty profile
+    if not nodes:
+        return {
+            "name": "Developer",
+            "username": "user",
+            "target_role": "Full Stack Developer",
+            "career_readiness": 0,
+            "skill_maturity_avg": 0,
+            "project_depth": 0,
+            "market_alignment": 0,
+            "risk_areas": [],
+            "top_skills": [],
+            "skill_distribution": {},
+            "radar_data": [],
+            "total_skills": 0,
+            "total_sources": 0,
+        }
+
+    # Skill nodes only (exclude repos)
+    skill_nodes = [n for n in nodes if n.get("category") != "repo"]
 
     # Skill distribution by category
     distribution = {}
-    for node in nodes:
+    for node in skill_nodes:
         cat = node.get("category", "other")
         distribution[cat] = distribution.get(cat, 0) + 1
 
     # Top skills by maturity
-    top_skills = sorted(nodes, key=lambda n: n.get("maturity", 0), reverse=True)[:5]
+    top_skills = sorted(skill_nodes, key=lambda n: n.get("maturity", 0), reverse=True)[:5]
 
     # Average maturity
-    maturities = [n.get("maturity", 0) for n in nodes]
+    maturities = [n.get("maturity", 0) for n in skill_nodes]
     avg_maturity = round(sum(maturities) / len(maturities), 1) if maturities else 0
 
     # Market alignment average
-    demands = [n.get("market_demand", 0) for n in nodes]
+    demands = [n.get("market_demand", 0) for n in skill_nodes]
     avg_demand = round(sum(demands) / len(demands), 1) if demands else 0
 
-    # Project depth (how many distinct sources)
-    sources = set(n.get("source", "github") for n in nodes)
-    project_depth = round(len(sources) / 3 * 100, 1)  # max 3 sources
+    # Project depth (how many repos)
+    repo_count = len([n for n in nodes if n.get("category") == "repo"])
+    project_depth = round(min(100, repo_count * 10), 1)
+
+    # Career readiness estimate
+    career_readiness = round(min(100, (avg_maturity * 0.4 + avg_demand * 0.3 + project_depth * 0.3)), 1)
 
     # Risk areas — skills with low maturity but high demand
     risk_areas = [
         n["name"]
-        for n in nodes
+        for n in skill_nodes
         if n.get("maturity", 0) < 50 and n.get("market_demand", 0) > 75
     ]
 
-    # Radar chart data (for frontend)
+    # Radar chart data
     radar_data = [
-        {"axis": "Frontend",  "value": _avg_category(nodes, "frontend")},
-        {"axis": "Backend",   "value": _avg_category(nodes, "backend")},
-        {"axis": "ML/AI",     "value": _avg_category(nodes, "ml")},
-        {"axis": "DevOps",    "value": _avg_category(nodes, "devops")},
-        {"axis": "Database",  "value": _avg_category(nodes, "database")},
-        {"axis": "Concepts",  "value": _avg_category(nodes, "concept")},
+        {"axis": "Frontend",  "value": _avg_category(skill_nodes, "frontend")},
+        {"axis": "Backend",   "value": _avg_category(skill_nodes, "backend")},
+        {"axis": "ML/AI",     "value": _avg_category(skill_nodes, "ml")},
+        {"axis": "DevOps",    "value": _avg_category(skill_nodes, "devops")},
+        {"axis": "Database",  "value": _avg_category(skill_nodes, "database")},
+        {"axis": "Concepts",  "value": _avg_category(skill_nodes, "concept")},
     ]
 
     return {
-        "name": DEMO_USER["name"],
-        "username": DEMO_USER["username"],
-        "target_role": DEMO_USER["target_role"],
-        "career_readiness": DEMO_USER["career_readiness"],
+        "name": "Developer",
+        "username": "user",
+        "target_role": "Full Stack Developer",
+        "career_readiness": career_readiness,
         "skill_maturity_avg": avg_maturity,
         "project_depth": project_depth,
         "market_alignment": avg_demand,
@@ -63,8 +88,8 @@ async def get_recruiter_profile():
         ],
         "skill_distribution": distribution,
         "radar_data": radar_data,
-        "total_skills": len(nodes),
-        "total_sources": len(sources),
+        "total_skills": len(skill_nodes),
+        "total_sources": repo_count,
     }
 
 
@@ -74,3 +99,4 @@ def _avg_category(nodes: list, category: str) -> float:
     if not cat_nodes:
         return 0
     return round(sum(n.get("maturity", 0) for n in cat_nodes) / len(cat_nodes), 1)
+

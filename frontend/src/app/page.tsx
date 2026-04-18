@@ -15,6 +15,7 @@ import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
 // import GitHubAuthButton from "@/components/ui/GitHubAuthButton"
 import { analyzeRepo } from "@/lib/api"
+import { useGraphStore } from "@/stores/graphStore"
 import { ArrowRight, Sparkles, ChevronDown, GitBranch, Cpu, Route, BarChart3, TrendingUp, Layers, Loader2, Search } from "lucide-react"
 
 /* ──────────────────────────────────────────
@@ -310,7 +311,7 @@ export default function LandingPage() {
         return () => { document.body.style.overflow = "auto" }
     }, [isLoading])
 
-    const handleAnalyze = async () => {
+    const handleAnalyze = async (mode: 'quick' | 'advanced') => {
         const url = repoUrl.trim()
         if (!url) {
             setError("Please paste a GitHub repo URL")
@@ -325,8 +326,9 @@ export default function LandingPage() {
         setError("")
         setAnalyzing(true)
         try {
-            await analyzeRepo(url)
-            router.push("/dashboard?source=repo")
+            const engine = useGraphStore.getState().analysisEngine
+            await analyzeRepo(url, engine)
+            router.push(`/dashboard?source=repo&mode=${mode}`)
         } catch (err: any) {
             setError(err?.response?.data?.detail || "Failed to analyze repo. Make sure it's a public repository.")
         } finally {
@@ -443,38 +445,48 @@ export default function LandingPage() {
                         transition={{ duration: 0.8, ease: customEase, delay: 0.35 }}
                         className="max-w-xl mx-auto mb-6"
                     >
-                        <div className={`flex flex-col sm:flex-row items-stretch sm:items-center gap-0 rounded-2xl border-2 bg-white shadow-lg transition-all duration-300 ${error ? 'border-red-300 shadow-red-100' : 'border-slate-200 hover:border-orange-300 focus-within:border-orange-400 focus-within:shadow-orange-100'}`}>
-                            <div className="flex items-center flex-1">
-                                <div className="flex items-center pl-3 sm:pl-4">
-                                    <GitBranch className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />
-                                </div>
-                                <input
-                                    type="text"
-                                    value={repoUrl}
-                                    onChange={(e) => { setRepoUrl(e.target.value); setError("") }}
-                                    onKeyDown={(e) => { if (e.key === "Enter" && !analyzing) handleAnalyze() }}
-                                    placeholder="github.com/user/repo"
-                                    disabled={analyzing}
-                                    className="flex-1 px-2 sm:px-3 py-3 sm:py-3.5 text-[14px] sm:text-[15px] font-medium text-slate-900 placeholder:text-slate-400 bg-transparent border-none outline-none disabled:opacity-50 min-w-0"
-                                />
+                        <div className={`flex items-center rounded-2xl border-2 bg-white shadow-lg transition-all duration-300 ${error ? 'border-red-300 shadow-red-100' : 'border-slate-200 hover:border-orange-300 focus-within:border-orange-400 focus-within:shadow-orange-100'}`}>
+                            <div className="flex items-center pl-3 sm:pl-4">
+                                <GitBranch className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />
                             </div>
+                            <input
+                                type="text"
+                                value={repoUrl}
+                                onChange={(e) => { setRepoUrl(e.target.value); setError("") }}
+                                onKeyDown={(e) => { if (e.key === "Enter" && !analyzing) handleAnalyze('advanced') }}
+                                placeholder="github.com/user/repo"
+                                disabled={analyzing}
+                                className="flex-1 px-2 sm:px-3 py-3 sm:py-3.5 text-[14px] sm:text-[15px] font-medium text-slate-900 placeholder:text-slate-400 bg-transparent border-none outline-none disabled:opacity-50 min-w-0"
+                            />
+                        </div>
+
+                        {/* Buttons Container */}
+                        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-4">
                             <motion.button
                                 whileHover={!analyzing ? { scale: 1.02 } : {}}
                                 whileTap={!analyzing ? { scale: 0.98 } : {}}
-                                onClick={handleAnalyze}
+                                onClick={() => handleAnalyze('quick')}
                                 disabled={analyzing}
-                                className="flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 m-1.5 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold text-[13px] sm:text-[14px] hover:from-orange-600 hover:to-orange-700 transition-all shadow-sm disabled:opacity-70 disabled:cursor-not-allowed whitespace-nowrap"
+                                className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 sm:px-6 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold text-[14px] hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
                             >
                                 {analyzing ? (
-                                    <>
-                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                        Analyzing...
-                                    </>
+                                    <><Loader2 className="w-4 h-4 animate-spin" />Analyzing...</>
                                 ) : (
-                                    <>
-                                        <Search className="w-4 h-4" />
-                                        Analyze
-                                    </>
+                                    <><Search className="w-4 h-4" />Quick Analyze</>
+                                )}
+                            </motion.button>
+                            
+                            <motion.button
+                                whileHover={!analyzing ? { scale: 1.02 } : {}}
+                                whileTap={!analyzing ? { scale: 0.98 } : {}}
+                                onClick={() => handleAnalyze('advanced')}
+                                disabled={analyzing}
+                                className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 sm:px-6 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold text-[14px] hover:from-orange-600 hover:to-orange-700 transition-all shadow-md disabled:opacity-70 disabled:cursor-not-allowed"
+                            >
+                                {analyzing ? (
+                                    <><Loader2 className="w-4 h-4 animate-spin" />Analyzing...</>
+                                ) : (
+                                    <><Search className="w-4 h-4" />Advanced Analyze</>
                                 )}
                             </motion.button>
                         </div>

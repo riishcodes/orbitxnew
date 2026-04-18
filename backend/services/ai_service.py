@@ -46,7 +46,7 @@ def extract_skills(
     if model is None:
         return _mock_extraction(name, languages)
 
-    prompt = f"""You are a senior developer analyzing a {source_type} project to extract ALL technologies, frameworks, libraries, and concepts used.
+    prompt = f"""You are a senior developer analyzing a {source_type} project to extract technologies, frameworks, and libraries that are ACTUALLY USED in this project.
 
 Project: {name}
 Languages detected: {languages}
@@ -56,21 +56,15 @@ Content (README + description):
 \"\"\"
 Activity: {commits} recent commits
 
-IMPORTANT RULES:
-1. Look for EVERY technology mentioned anywhere — in badges, headers, "Built With" sections, installation commands (npm, pip), import statements, config files mentioned, docker references, CI/CD configs, etc.
-2. Infer technologies even if not explicitly named. For example:
-   - "npm install" or "package.json" → Node.js
-   - "pip install" or "requirements.txt" → Python
-   - "Dockerfile" → Docker
-   - "vercel.json" or "deployed on Vercel" → Vercel
-   - ".github/workflows" → GitHub Actions
-   - "tailwind.config" → Tailwind CSS
-   - "prisma" → Prisma ORM
-   - "next.config" → Next.js
-3. Include both specific tools (React, FastAPI) AND broader concepts (API Design, Authentication, Real-time, Responsive Design)
-4. Extract 5 to 15 skills — be thorough, don't miss anything
-5. category MUST be one of: frontend, backend, ml, devops, database, mobile, concept
-6. confidence is 0.0 to 1.0 based on how clearly the tech is mentioned
+STRICT RULES:
+1. ONLY extract technologies that are CLEARLY AND EXPLICITLY mentioned as being used in this project.
+2. DO NOT infer or guess technologies that are merely referenced in comparisons, alternatives, or "see also" sections.
+3. If the README says "unlike Express" or "alternative to Django", do NOT extract Express or Django — those are comparisons, not actual usage.
+4. Look for: "Built with", import statements, package.json/requirements.txt dependencies, Dockerfile references, config files mentioned, badges.
+5. The detected languages list is RELIABLE — include those. But only add frameworks if there's clear evidence they're used.
+6. Extract 3 to 12 skills — quality over quantity. Only include things you're confident about.
+7. category MUST be one of: frontend, backend, ml, devops, database, mobile, concept
+8. confidence is 0.5 to 1.0 — use 0.5 for loosely mentioned, 0.9+ for clearly core technologies
 
 Return ONLY this JSON, no explanation, no markdown fences:
 {{"skills": [{{"name": "string", "category": "string", "confidence": 0.0}}], "concepts": ["string"], "domain": "string"}}
